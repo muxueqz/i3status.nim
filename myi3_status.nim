@@ -6,7 +6,7 @@ import re
 import sequtils
 import math
 import std/tables
-
+import osproc
 
 var DEFAULT_PROCPATH = "/proc"
 
@@ -15,18 +15,32 @@ var head = """{"version":1,"click_events":true,"stop_signal":0,"cont_signal":0}
 echo(head)
 os.sleep(1*1000)
 
-# local function get_width(): integer
-#   local fd = io.popen('i3-msg -t get_outputs')
-#   local r = fd:read()
-#   local outputs = json.parse(r, @sequence(Output))
-#   for i = 0, #outputs, 1 do
-#     local v = outputs[i]
-#     if v.primary == true then
-#       return v.rect["width"]
-#     end
-#   end
-#   return 0
-# end
+type
+  Rect = object
+    x, y, width, height: int
+
+  Output = object
+    name: string
+    active: bool
+    primary: bool
+    rect: Rect
+
+proc getWidth(): int =
+  let (output, status) = execCmdEx("i3-msg -t get_outputs")
+  if status != 0:
+    return 0
+
+  var outputs: seq[Output]
+  try:
+    outputs = to(parseJson(output), seq[Output])
+  except JsonParsingError:
+    return 0
+
+  for output in outputs:
+    if output.primary:
+      return output.rect.width
+
+  return 0
 
 var module_count = 3.0
 # local primary_width = get_width()
@@ -127,8 +141,8 @@ proc getBatteryInfo(devpath: string, useEnergyFullDesign: bool): string =
 
 proc get_status() =
   var
-    # min_width = 1024
-    min_width = 1200
+    width = getWidth().toFloat
+    min_width = (width * 0.664).toInt
     dev = "CMB0"
     devpath = "/sys/class/power_supply/" & dev
 
