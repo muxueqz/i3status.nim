@@ -39,8 +39,7 @@ proc getWidth(): int =
   for output in outputs:
     if output.primary:
       return output.rect.width
-
-  return 0
+  return outputs[0].rect.width
 
 var module_count = 3.0
 # local primary_width = get_width()
