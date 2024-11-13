@@ -42,19 +42,15 @@ proc getWidth(): int =
   return outputs[0].rect.width
 
 var module_count = 3.0
-# local primary_width = get_width()
-# local min_width = primary_width - primary_width * 0.10 * module_count
-# -- local min_width = get_width() * 0.85
 
 var lastIdle = 0
 var lastTotal = 0
 
 proc getCpuUsage(): int =
-  let fd = open("/proc/stat", fmRead) 
+  let fd = open("/proc/stat", fmRead)
   defer: close(fd)
   var line = fd.readLine()
   var matches = newSeq[string](7)
-  # let pattern = re"(?m)^cpu +(\d+) +(\d+) +(\d+) +(\d+) +(\d+) +(\d+) +(\d+)$"
   let pattern = re"(?m)^cpu +(\d+) +(\d+) +(\d+) +(\d+) +(\d+) +(\d+) +(\d+)"
   if line.find(pattern, matches) >= 0:
     let idle = parseInt(matches[3])
@@ -63,7 +59,6 @@ proc getCpuUsage(): int =
     let totalDelta = total - lastTotal
     lastIdle = idle
     lastTotal = total
-    # echo [total, idle]
     return int((1 - idleDelta.float / totalDelta.float) * 100)
   else:
     return 0
@@ -79,11 +74,6 @@ proc getMemUsage(): int =
   let total = meminfo["MemTotal"]
   let free = meminfo["MemFree"] + meminfo["Buffers"] + meminfo["Cached"]
   return int((total - free) / total * 100)
-
-
-type
-  Status = enum
-    Charging, Discharging, Notcharging
 
 proc getBatteryInfo(devpath: string, useEnergyFullDesign: bool): string =
   proc getBatteryInfoReal(devpath: string, useEnergyFullDesign: bool): string =
@@ -105,10 +95,13 @@ proc getBatteryInfo(devpath: string, useEnergyFullDesign: bool): string =
 
       if ueventData.getOrDefault("charge_full").match(re"\d+"):
         let voltageNow = parseFloat(ueventData.getOrDefault("voltage_now"))
-        energyFull = parseFloat(ueventData.getOrDefault("charge_full")) * voltageNow / 1_000_000
-        energyNow = parseFloat(ueventData.getOrDefault("charge_now")) * voltageNow / 1_000_000
+        energyFull = parseFloat(ueventData.getOrDefault("charge_full")) *
+            voltageNow / 1_000_000
+        energyNow = parseFloat(ueventData.getOrDefault("charge_now")) *
+            voltageNow / 1_000_000
         if ueventData.getOrDefault("current_now").len > 0:
-          powerNow = parseFloat(ueventData.getOrDefault("current_now")) * voltageNow / 1_000_000
+          powerNow = parseFloat(ueventData.getOrDefault("current_now")) *
+              voltageNow / 1_000_000
 
       let status = ueventData.getOrDefault("status")
       var energyFullDesign = energyFull
@@ -130,12 +123,10 @@ proc getBatteryInfo(devpath: string, useEnergyFullDesign: bool): string =
 
       return &"{flag} {capacity}%:{remTime.int}H"
     except:
-      # echo "getBatteryInfoReal except"
       return "battery: unknown"
   try:
     result = getBatteryInfoReal(devpath, useEnergyFullDesign)
   except:
-    # echo "getBatteryInfo except"
     result = "battery: unknown"
 
 proc get_status() =
@@ -144,9 +135,7 @@ proc get_status() =
     min_width = (width * 0.664).toInt
     dev = "CMB0"
     devpath = "/sys/class/power_supply/" & dev
-
     status_array: seq[string]
-#   
     count = 5
   for i in 0..module_count.toInt:
     status_array.add("")
